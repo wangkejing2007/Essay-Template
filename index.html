@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在地動物飼養生物安全：成本效益分析儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: AgTech Modern -->
+    <!-- Primary Background: #FDFBF7 (Warm Neutral/Off-White) -->
+    <!-- Secondary Background: #FFFFFF (White Cards) -->
+    <!-- Primary Accent: #2E7D32 (Vibrant Forest Green - Growth/Safety) -->
+    <!-- Secondary Accent: #E65100 (Deep Orange - Cost/Alert) -->
+    <!-- Text Color: #263238 (Blue Grey - Readable Technical) -->
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FDFBF7;
+            color: #263238;
+        }
+        
+        /* Chart Container Strategy as per requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max width to prevent excessive stretching */
+            height: 350px; /* Base height */
+            max-height: 450px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        /* Custom Scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #90A4AE; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #607D8B; 
+        }
+
+        .active-tab {
+            border-bottom: 3px solid #2E7D32;
+            color: #1B5E20;
+            font-weight: 700;
+        }
+        
+        .inactive-tab {
+            color: #607D8B;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+    </style>
+
+    <!-- Application Structure Plan: 
+         1. Header & Context: Sets the stage using the report's premise (CEA & BCI).
+         2. Interactive Methodology (The "Why"): A calculator section to explain the abstract formula CER = C_Total / Delta BCI interactively, helping users grasp the core math without reading dry text.
+         3. The Analysis Dashboard (The "What"):
+            - Radar Chart: To compare the 5 dimensions of Biosecurity.
+            - Bubble Chart (The Core Finding): Cost vs. Effectiveness Matrix. This is the visual representation of the report's main hypothesis.
+            - Line Chart (The Sustainability Insight): Showing "Compliance Decay" over time (Operational vs. Structural measures).
+         4. Recommendations Engine (The "So What"): An interactive list filtering recommendations for Farmers vs. Authorities, directly derived from Section 6.2 of the report.
+         
+         Flow: Define Problem -> Explain Tool -> Show Data -> Propose Solution.
+         Why: The report is academic and dense. This structure turns the "formulas" into calculators and the "results" into interactive explorations.
+    -->
+
+    <!-- Visualization & Content Choices:
+         1. CER Calculator: 
+            - Goal: Inform/Explain. 
+            - Method: HTML Inputs + JS Math. 
+            - Interaction: Real-time update of CER score.
+            - Justification: The report relies on this formula. Static text is boring; a calculator proves the concept of "Labor Cost" impact.
+         
+         2. BCI Dimensions Radar:
+            - Goal: Compare.
+            - Method: Chart.js Radar.
+            - Interaction: Toggle between "High Standard" vs "Reality" datasets.
+            - Justification: Shows gap analysis in the 5 key areas mentioned (Isolation, Sanitation, etc.).
+            
+         3. Cost-Effectiveness Bubble Matrix:
+            - Goal: Relationships.
+            - Method: Chart.js Bubble.
+            - Interaction: Tooltips with details.
+            - Justification: The report's core output is the CEA. Bubble charts perfectly show Cost (X), Effectiveness (Y), and Adoption (Size).
+            
+         4. Compliance Decay Line:
+            - Goal: Change over Time.
+            - Method: Chart.js Line.
+            - Interaction: None/Static view of trend.
+            - Justification: Visualizes the "Labor Cost" argument where operational measures fail over time.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased">
+
+    <!-- Navigation / Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🛡️</span>
+                    <h1 class="text-xl font-bold text-gray-800 tracking-tight">動物飼養生物安全研究：<span class="text-[#2E7D32]">成本效益分析 (CEA)</span></h1>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <button onclick="scrollToSection('intro')" class="text-gray-600 hover:text-[#2E7D32] px-3 py-2 rounded-md text-sm font-medium">研究背景</button>
+                    <button onclick="scrollToSection('methodology')" class="text-gray-600 hover:text-[#2E7D32] px-3 py-2 rounded-md text-sm font-medium">計算模型</button>
+                    <button onclick="scrollToSection('analysis')" class="text-gray-600 hover:text-[#2E7D32] px-3 py-2 rounded-md text-sm font-medium">數據分析</button>
+                    <button onclick="scrollToSection('conclusion')" class="text-gray-600 hover:text-[#2E7D32] px-3 py-2 rounded-md text-sm font-medium">實務建議</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+
+        <!-- Section 1: Introduction -->
+        <section id="intro" class="bg-white rounded-xl shadow p-6 md:p-8">
+            <h2 class="text-3xl font-bold text-[#2E7D32] mb-4">研究核心：為何我們需要 BCI 指標？</h2>
+            <div class="prose max-w-none text-gray-600 mb-6">
+                <p class="text-lg leading-relaxed">
+                    本報告展示了一項針對在地動物飼養環境的模擬研究。傳統上，農戶難以評估生物安全投資的效益，因為「沒有生病」很難量化為金錢。本研究引入了 <strong>生物安全符合度指數 (Biosecurity Compliance Index, BCI)</strong> 作為代理指標，取代難以獲取的流行病學數據。通過 <strong>成本有效性分析 (CEA)</strong>，我們分析了不同防疫措施的經濟效益，旨在解決「高勞力成本 ($C_{Labor}$)」導致執行率隨時間下降的問題。
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-[#F1F8E9] p-6 rounded-lg border-l-4 border-[#2E7D32] card-hover">
+                    <div class="text-3xl mb-2">📊</div>
+                    <h3 class="font-bold text-lg mb-2">BCI 指標</h3>
+                    <p class="text-sm">將抽象的「安全性」量化為 0-100 的分數，作為評估防疫成效的基準。</p>
+                </div>
+                <div class="bg-[#FFF3E0] p-6 rounded-lg border-l-4 border-[#E65100] card-hover">
+                    <div class="text-3xl mb-2">💰</div>
+                    <h3 class="font-bold text-lg mb-2">成本結構</h3>
+                    <p class="text-sm">區分「一次性材料成本」與「持續性勞力成本」。被低估的勞力成本是防疫失敗的主因。</p>
+                </div>
+                <div class="bg-[#E3F2FD] p-6 rounded-lg border-l-4 border-[#1976D2] card-hover">
+                    <div class="text-3xl mb-2">⚖️</div>
+                    <h3 class="font-bold text-lg mb-2">CER 比率</h3>
+                    <p class="text-sm">成本有效性比率。數值越低，代表每一塊錢能換來越高的安全防護提升。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Interactive Methodology (Calculator) -->
+        <section id="methodology" class="bg-white rounded-xl shadow overflow-hidden">
+            <div class="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-[#2E7D32] mb-2">互動模型：計算你的 CER</h2>
+                <p class="text-gray-600">
+                    本研究的核心公式為 $CER = C_{Total} / \Delta BCI$。試著調整下方的參數，觀察當<strong>勞力成本</strong>或<strong>執行意願</strong>改變時，投資效益如何變化。這解釋了為何有些措施看似便宜，長期效益卻很差。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                <!-- Inputs -->
+                <div class="p-6 md:p-8 space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">材料成本 ($C_{Material}$)</label>
+                        <input type="range" id="inputMaterial" min="1000" max="50000" step="1000" value="10000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2E7D32]">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>低成本</span>
+                            <span id="valMaterial" class="font-bold text-[#2E7D32]">NT$ 10,000</span>
+                            <span>高成本</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">每週勞力成本 ($C_{Labor}$)</label>
+                        <input type="range" id="inputLabor" min="0" max="2000" step="100" value="500" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#E65100]">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>無勞力 (結構性)</span>
+                            <span id="valLabor" class="font-bold text-[#E65100]">NT$ 500 /週</span>
+                            <span>高勞力 (運營性)</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">預期 BCI 提升量 ($\Delta BCI$)</label>
+                        <input type="range" id="inputBCI" min="1" max="20" step="1" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1976D2]">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>微幅改善 (1)</span>
+                            <span id="valBCI" class="font-bold text-[#1976D2]">+5 分</span>
+                            <span>顯著改善 (20)</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">觀察期 (週數)</label>
+                        <select id="inputWeeks" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#2E7D32] focus:border-[#2E7D32] sm:text-sm rounded-md bg-white border">
+                            <option value="4">短期 (1個月)</option>
+                            <option value="24" selected>中期 (半年)</option>
+                            <option value="52">長期 (1年)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="bg-[#263238] text-white p-6 md:p-8 flex flex-col justify-center items-center text-center">
+                    <div class="mb-6">
+                        <div class="text-gray-400 text-sm uppercase tracking-wider mb-1">總投入成本 (Total Cost)</div>
+                        <div id="outputTotalCost" class="text-4xl font-bold">NT$ 22,000</div>
+                        <div class="text-xs text-gray-400 mt-1">材料 + (每週勞力 × 週數)</div>
+                    </div>
+                    
+                    <div class="w-full border-t border-gray-600 my-4"></div>
+
+                    <div class="mb-2">
+                        <div class="text-gray-400 text-sm uppercase tracking-wider mb-1">CER (成本有效性比率)</div>
+                        <div id="outputCER" class="text-5xl font-extrabold text-[#4CAF50]">4,400</div>
+                        <div class="text-sm text-gray-300 mt-2">每提升 1 分 BCI 所需成本</div>
+                    </div>
+                    
+                    <div id="recommendationText" class="mt-4 px-4 py-2 bg-opacity-20 bg-white rounded text-sm text-yellow-300 font-medium">
+                        <!-- Dynamic Recommendation -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Data Analysis Dashboard -->
+        <section id="analysis" class="space-y-8">
+            <div class="border-l-4 border-[#2E7D32] pl-4">
+                <h2 class="text-3xl font-bold text-gray-800">實證數據分析</h2>
+                <p class="text-gray-600 mt-2">
+                    透過對 50 家在地農場的模擬調查，我們運用 BCI 框架進行了深入分析。以下圖表展示了「結構性措施」與「運營性措施」在成本、有效性及持久性上的顯著差異。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Chart 1: Radar Chart (BCI Dimensions) -->
+                <div class="bg-white p-6 rounded-xl shadow card-hover">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">目前農場 BCI 防護輪廓</h3>
+                    <p class="text-xs text-gray-500 mb-4">
+                        比較理想標準與實際現況。注意「人員管制」與「紀錄保存」通常是最大的弱點。
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Line Chart (Compliance Decay) -->
+                <div class="bg-white p-6 rounded-xl shadow card-hover">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">時間維度：執行率衰退趨勢</h3>
+                    <p class="text-xs text-gray-500 mb-4">
+                        高勞力投入的運營性措施（虛線）隨時間推移，執行率顯著下降，導致真實 BCI 低於預期。
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="lineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart 3: Bubble Chart (The Matrix) -->
+            <div class="bg-white p-6 rounded-xl shadow card-hover">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">成本有效性矩陣 (CEA Matrix)</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            X軸：成本 (越右越貴) | Y軸：有效性 (越上越好) | 氣泡大小：農戶採用率
+                        </p>
+                    </div>
+                    <div class="mt-2 md:mt-0 px-3 py-1 bg-gray-100 text-xs rounded-full text-gray-600">
+                        目標區：左上角 (低成本，高成效)
+                    </div>
+                </div>
+                <div class="chart-container" style="max-width: 100%;">
+                    <canvas id="bubbleChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="flex items-start">
+                        <span class="inline-block w-3 h-3 rounded-full bg-[#2E7D32] mt-1 mr-2 flex-shrink-0"></span>
+                        <p><strong class="text-[#2E7D32]">結構性措施 (綠色)：</strong> 雖然初期成本較高，但在長期維護低勞力成本的情況下，展現出較穩定的有效性。</p>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="inline-block w-3 h-3 rounded-full bg-[#E65100] mt-1 mr-2 flex-shrink-0"></span>
+                        <p><strong class="text-[#E65100]">運營性措施 (橘色)：</strong> 經常因為隱形成本（時間、麻煩）被低估，導致位於低效能區間。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Recommendations -->
+        <section id="conclusion" class="bg-[#F1F8E9] rounded-xl p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-[#2E7D32] mb-6 text-center">基於 CEA 分析的實務建議</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- For Farmers -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-[#2E7D32] text-white p-2 rounded-lg mr-3 text-xl">👨‍🌾</div>
+                        <h3 class="text-xl font-bold text-gray-800">給農戶的建議</h3>
+                    </div>
+                    <ul class="space-y-3 text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-[#2E7D32] mr-2">✓</span>
+                            <span><strong>優先投資結構性設施：</strong> 如圍籬、防鳥網。這些是一次性痛苦，但長期提供穩定的 BCI 防護，不受每天心情影響。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-[#2E7D32] mr-2">✓</span>
+                            <span><strong>簡化運營流程：</strong> 選擇步驟最少、最不麻煩的消毒方式。如果程序太複雜，未來的你自己一定會偷懶。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-[#2E7D32] mr-2">✓</span>
+                            <span><strong>重視隱形勞力成本：</strong> 計算成本時，務必將每天花費的時間折算成工資，才能看見真實的 CER。</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- For Authorities -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-[#1976D2] text-white p-2 rounded-lg mr-3 text-xl">🏛️</div>
+                        <h3 class="text-xl font-bold text-gray-800">給主管機關的建議</h3>
+                    </div>
+                    <ul class="space-y-3 text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-[#1976D2] mr-2">✓</span>
+                            <span><strong>資助高 CER 項目：</strong> 補助款不應只看設備價格，應優先資助那些被證明具備高成本有效性的項目。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-[#1976D2] mr-2">✓</span>
+                            <span><strong>行為改變教育：</strong> 舉辦工作坊，不僅教導「做什麼」，更要教導「如何養成習慣」，以提升運營性措施的長期執行率。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-[#1976D2] mr-2">✓</span>
+                            <span><strong>建立在地 BCI 基準：</strong> 定期追蹤區域 BCI 變化，作為政策調整的依據。</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-300 py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="mb-2 font-medium">高中自主研究論文綱要設計與實證指導報告</p>
+            <p class="text-sm text-gray-400">主題：在地動物飼養環境中生物安全措施的成本效益與有效性分析</p>
+            <p class="text-xs text-gray-500 mt-4">Designed as an Interactive Research Dashboard</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- 1. Interaction Logic: CER Calculator ---
+        const inputs = {
+            material: document.getElementById('inputMaterial'),
+            labor: document.getElementById('inputLabor'),
+            bci: document.getElementById('inputBCI'),
+            weeks: document.getElementById('inputWeeks')
+        };
+        const displays = {
+            material: document.getElementById('valMaterial'),
+            labor: document.getElementById('valLabor'),
+            bci: document.getElementById('valBCI'),
+            total: document.getElementById('outputTotalCost'),
+            cer: document.getElementById('outputCER'),
+            rec: document.getElementById('recommendationText')
+        };
+
+        function updateCalculator() {
+            const mat = parseInt(inputs.material.value);
+            const lab = parseInt(inputs.labor.value);
+            const bci = parseInt(inputs.bci.value);
+            const wks = parseInt(inputs.weeks.value);
+
+            // Update display values
+            displays.material.innerText = `NT$ ${mat.toLocaleString()}`;
+            displays.labor.innerText = `NT$ ${lab.toLocaleString()} /週`;
+            displays.bci.innerText = `+${bci} 分`;
+
+            // Calculate Formula
+            const totalCost = mat + (lab * wks);
+            const cer = Math.round(totalCost / bci);
+
+            // Animate Output
+            displays.total.innerText = `NT$ ${totalCost.toLocaleString()}`;
+            displays.cer.innerText = cer.toLocaleString();
+
+            // Dynamic Recommendation Logic
+            if (cer < 2000) {
+                displays.cer.className = "text-5xl font-extrabold text-[#4CAF50]"; // Green
+                displays.rec.innerText = "優異 (Excellent): 極具投資價值，應立即實施。";
+                displays.rec.className = "mt-4 px-4 py-2 bg-green-100 text-green-800 rounded text-sm font-medium";
+            } else if (cer < 5000) {
+                displays.cer.className = "text-5xl font-extrabold text-[#FFC107]"; // Yellow
+                displays.rec.innerText = "普通 (Moderate): 需評估預算狀況。";
+                displays.rec.className = "mt-4 px-4 py-2 bg-yellow-100 text-yellow-800 rounded text-sm font-medium";
+            } else {
+                displays.cer.className = "text-5xl font-extrabold text-[#F44336]"; // Red
+                displays.rec.innerText = "低效 (Poor): 成本過高或效益太低，建議尋找替代方案。";
+                displays.rec.className = "mt-4 px-4 py-2 bg-red-100 text-red-800 rounded text-sm font-medium";
+            }
+        }
+
+        // Attach listeners
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', updateCalculator);
+        });
+        
+        // Initial call
+        updateCalculator();
+
+
+        // --- 2. Navigation Logic ---
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                const headerOffset = 80;
+                const elementPosition = element.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: "smooth"
+                });
+            }
+        }
+
+
+        // --- 3. Visualization Logic (Chart.js) ---
+        
+        // Common Options for Style
+        Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
+        Chart.defaults.color = '#546E7A';
+
+        // A. Radar Chart: BCI Dimensions
+        const ctxRadar = document.getElementById('radarChart').getContext('2d');
+        new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['物理隔離', '清潔消毒', '人員管制', '害蟲控制', '紀錄保存'],
+                datasets: [{
+                    label: '理想標準 (Ideal)',
+                    data: [100, 100, 100, 100, 100],
+                    fill: true,
+                    backgroundColor: 'rgba(200, 200, 200, 0.1)',
+                    borderColor: 'rgb(200, 200, 200)',
+                    pointBackgroundColor: 'rgb(200, 200, 200)',
+                    borderDash: [5, 5]
+                }, {
+                    label: '實地調查平均值 (Actual)',
+                    data: [75, 60, 35, 50, 25],
+                    fill: true,
+                    backgroundColor: 'rgba(46, 125, 50, 0.2)', // Green tint
+                    borderColor: '#2E7D32',
+                    pointBackgroundColor: '#2E7D32',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#2E7D32'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: '#ECEFF1' },
+                        grid: { color: '#ECEFF1' },
+                        pointLabels: {
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw + ' 分';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // B. Line Chart: Compliance Decay
+        const ctxLine = document.getElementById('lineChart').getContext('2d');
+        new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: ['第1週', '第4週', '第8週', '第12週', '第16週', '第20週', '第24週'],
+                datasets: [{
+                    label: '結構性措施 (圍籬/硬體)',
+                    data: [98, 98, 97, 97, 96, 96, 95],
+                    borderColor: '#2E7D32', // Green
+                    backgroundColor: '#2E7D32',
+                    tension: 0.1,
+                    borderWidth: 3
+                }, {
+                    label: '運營性措施 (消毒/換裝)',
+                    data: [95, 85, 70, 60, 50, 45, 40],
+                    borderColor: '#E65100', // Orange
+                    backgroundColor: '#E65100',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: '執行完整度 (%)' },
+                        min: 0,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function() {
+                                return '\n解析: 運營性措施因高勞力投入，\n隨時間產生執行疲勞。';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // C. Bubble Chart: Cost-Effectiveness Matrix
+        // X = Cost (Total Cost Index), Y = Effectiveness (Delta BCI), R = Adoption Rate
+        const ctxBubble = document.getElementById('bubbleChart').getContext('2d');
+        new Chart(ctxBubble, {
+            type: 'bubble',
+            data: {
+                datasets: [{
+                    label: '結構性措施 (Structural)',
+                    data: [
+                        { x: 40, y: 15, r: 12, measure: '周界圍籬' }, // High cost, good effect
+                        { x: 25, y: 10, r: 15, measure: '防鳥網' },
+                        { x: 60, y: 18, r: 8, measure: '車輛消毒門' }
+                    ],
+                    backgroundColor: 'rgba(46, 125, 50, 0.7)', // Green
+                    borderColor: '#2E7D32'
+                }, {
+                    label: '運營性措施 (Operational)',
+                    data: [
+                        { x: 10, y: 5, r: 25, measure: '訪客登記' }, // Low cost (money), low effect
+                        { x: 30, y: 12, r: 10, measure: '更換專用靴' }, // Med cost (labor), med effect
+                        { x: 15, y: 4, r: 20, measure: '定期除草' }
+                    ],
+                    backgroundColor: 'rgba(230, 81, 0, 0.7)', // Orange
+                    borderColor: '#E65100'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: '總投入成本指數 (Cost)' },
+                        min: 0,
+                        max: 70
+                    },
+                    y: {
+                        title: { display: true, text: 'BCI 提升幅度 (Effectiveness)' },
+                        min: 0,
+                        max: 25
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const raw = context.raw;
+                                return `${raw.measure}: 成本 ${raw.x}, 效益 +${raw.y}, 採用率 ${raw.r}%`;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
